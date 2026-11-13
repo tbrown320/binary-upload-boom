@@ -1,5 +1,7 @@
 const cloudinary = require("../middleware/cloudinary");
 const Post = require("../models/Post");
+const Comment = require("../models/Comment");
+
 
 module.exports = {
   getProfile: async (req, res) => {
@@ -10,6 +12,24 @@ module.exports = {
       console.log(err);
     }
   },
+  // postComments: async (req, res) => {
+  //   try {
+  //     // Upload image to cloudinary
+  //     // const result = await cloudinary.uploader.upload(req.file.path);
+
+  //     await Comment.create({
+  //       // cloudinaryId: result.public_id,
+  //       comment: req.body.comment,
+  //       likes: 0,
+  //       user: req.user.id,
+  //       timePosted: req.body.createdAt
+  //     });
+  //     console.log("Comment has been added!");
+  //     res.redirect("/profile");
+  //   } catch (err) {
+  //     console.log(err);
+  //   }
+  // },
   getFeed: async (req, res) => {
     try {
       const posts = await Post.find().sort({ createdAt: "desc" }).lean();
@@ -21,7 +41,9 @@ module.exports = {
   getPost: async (req, res) => {
     try {
       const post = await Post.findById(req.params.id);
-      res.render("post.ejs", { post: post, user: req.user });
+
+      let comments = await Comment.find({ post: req.params.id }).sort({ createdAt: "asc" }).populate("user", "userName");;
+      res.render("post.ejs", { post: post, user: req.user, comments: comments });
     } catch (err) {
       console.log(err);
     }
@@ -41,6 +63,22 @@ module.exports = {
       });
       console.log("Post has been added!");
       res.redirect("/profile");
+    } catch (err) {
+      console.log(err);
+    }
+  },
+  createComment: async (req, res) => {
+    try {
+      // Upload image to cloudinary
+      const result = await cloudinary.uploader.upload(req.file.path);
+
+      await Comment.create({
+        comment: req.body.comment,
+        user: req.user.id,
+        post: req.body.postId,
+      });
+      console.log("Comment has been added!");
+      res.redirect(`/post/${req.body.postId}`);
     } catch (err) {
       console.log(err);
     }
